@@ -16,18 +16,38 @@
                          ::initial-value 10}
                         {::name "Company 2"
                          ::initial-value 20}]
+           ::markets {:us 0 :japan 1 :eu -4}
+
            ::events [{::event-type ::inc
                       ::name "Company 1"
                       ::inc 10}]})
 
-(defmulti handle-event ::event-type)
-(defmethod handle-event ::inc [_] (s/keys :req [::event-type ::]))
+(def market-symbol? #{:us :japan :eu})
+(def market-change? (into #{} (range -1 2)))
+(def market-value? (into #{} (range -5 6)))
 
+(s/def ::market-symbol market-symbol?)
+(s/def ::market-change market-change?)
+(s/def ::market-value market-value?)
+(s/def ::event (s/keys :req [::market ::market-change]))
+(s/def ::game (s/keys :req [:markets]))
+
+(s/fdef handle-event)
+
+(defprotocol Event (handle-event [this game]))
+
+(defrecord MarketEvent [market change]
+  Event
+  (handle-event [this game]
+    (let [v (-> game ::markets market)]
+      (assoc-in game
+                [::markets market]
+                (+ v (:change this))))))
 
 (s/valid? ::companies (::companies game))
 
 
-(gen/generate (s/gen ::company))
+(gen/generate (s/gen ::event))
 
 
 
